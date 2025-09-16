@@ -66,9 +66,9 @@ export default function OTP() {
   };
 
   return (
-    <AuthCard title="Verify OTP">
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="flex justify-center space-x-2">
+    <AuthCard title="Verify OTP" className="bg-white shadow-md rounded-2xl p-8">
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="flex justify-center gap-3">
           {otp.map((digit, idx) => (
             <input
               key={idx}
@@ -78,20 +78,20 @@ export default function OTP() {
               onChange={(e) => handleChange(idx, e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, idx)}
               ref={(el) => (inputRefs.current[idx] = el)}
-              className="w-12 h-12 text-center text-2xl text-white tracking-widest bg-dark border border-gray-700 rounded-lg focus:outline-none focus:border-accent"
+              className="w-14 h-14 text-center text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all duration-200"
             />
           ))}
         </div>
         <button
           type="submit"
-          className="w-full bg-accent text-black p-3 rounded-lg font-semibold hover:opacity-90"
+          className="w-full bg-teal-500 text-white py-3 rounded-xl font-bold tracking-wide hover:bg-teal-600 transition-colors"
         >
-          Verify
+          Verify OTP
         </button>
-        <p className="text-sm text-center text-gray-400">
+        <p className="text-sm text-center text-gray-600">
           Didn’t receive the code?{" "}
           <span
-            className="text-accent underline cursor-pointer"
+            className="text-teal-600 font-medium cursor-pointer hover:underline"
             onClick={handleResend}
           >
             Resend

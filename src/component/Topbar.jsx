@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 export default function Topbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const fullName = localStorage.getItem("name");
 
   // ✅ Check token on mount
   useEffect(() => {
@@ -11,19 +12,21 @@ export default function Topbar() {
 
   // ✅ Logout Function
   const handleLogout = () => {
-    localStorage.removeItem("token"); // remove token
+    localStorage.removeItem("token");
     setIsLoggedIn(false);
     window.location.href = "/login"; // redirect to login page
   };
 
   return (
-    <div className="bg-surface p-4 flex items-center justify-between border-b border-gray-800">
-      <span className="text-lg font-semibold">Welcome, Researcher</span>
+    <div className="bg-white p-4 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <span className="text-lg font-medium text-gray-800">
+        Welcome, {fullName}
+      </span>
 
       {isLoggedIn ? (
         <button
           onClick={handleLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:opacity-90"
+          className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition"
         >
           Logout
         </button>
@@ -31,13 +34,13 @@ export default function Topbar() {
         <div className="space-x-3">
           <a
             href="/login"
-            className="bg-accent text-black px-4 py-2 rounded hover:opacity-90"
+            className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition"
           >
             Login
           </a>
           <a
             href="/register"
-            className="bg-gray-700 text-white px-4 py-2 rounded hover:opacity-90"
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
           >
             Register
           </a>

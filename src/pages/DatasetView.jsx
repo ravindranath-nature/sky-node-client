@@ -1,14 +1,18 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Eye, Download, BarChart2 } from "lucide-react"; // Icons
+import { Eye, Download, BarChart2 } from "lucide-react";
 import { fetchImpression } from "../api/summary";
+import Modal from "../component/Modal";
 
 export default function DatasetView() {
   const location = useLocation();
   const navigate = useNavigate();
   const [contentTypes, setContentTypes] = useState({});
-  const [activeVideo, setActiveVideo] = useState(null);
+  const [dimensions, setDimensions] = useState({});
+  const [selectedModels, setSelectedModels] = useState({});
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [stats, setStats] = useState({ views: 0, downloads: 0, impression: 0 });
 
   const dataset = location.state?.dataset;
@@ -16,43 +20,100 @@ export default function DatasetView() {
   useEffect(() => {
     if (!dataset) return;
 
-    // Fetch content types for each CID
-    const fetchContentTypes = async () => {
+    const fetchMetadata = async () => {
       const types = {};
+      const dims = {};
+
       for (const cid of dataset.images) {
         try {
-          const res = await axios.head(`http://127.0.0.1:8080/ipfs/${cid}`);
+          const url = `http://127.0.0.1:8080/ipfs/${cid}`;
+          const res = await axios.head(url);
           types[cid] = res.headers["content-type"];
+
+          if (res.headers["content-type"].startsWith("image/")) {
+            const img = new Image();
+            img.src = url;
+            await new Promise((resolve) => {
+              img.onload = () => {
+                dims[cid] = `${img.width}x${img.height}`;
+                resolve();
+              };
+              img.onerror = resolve;
+            });
+          } else {
+            dims[cid] = "N/A";
+          }
         } catch (err) {
-          console.error("Error fetching content type for", cid, err);
+          console.error("Error fetching metadata for", cid, err);
         }
       }
+
       setContentTypes(types);
+      setDimensions(dims);
     };
 
-    // Fetch stats
     const fetchStats = async () => {
       try {
-        console.log(dataset);
         const res = await fetchImpression(dataset.id);
-        console.log(res);
         setStats(res.data);
       } catch (error) {
         console.error("Failed to load stats", error);
       }
     };
 
-    fetchContentTypes();
+    fetchMetadata();
     fetchStats();
   }, [dataset]);
 
+  const handleModelChange = (cid, model) => {
+    setSelectedModels((prev) => ({ ...prev, [cid]: model }));
+  };
+
+  const handleRunModel = async (cid) => {
+    const url = `http://127.0.0.1:8080/ipfs/${cid}`;
+    const model = selectedModels[cid];
+
+    if (!model) {
+      alert("Please select a model first!");
+      return;
+    }
+
+    console.log(`Running model ${model} on CID: ${cid}`);
+    setSelectedImage(url);
+    setIsOpen(true);
+    try {
+      const res = await axios.post(
+        "http://localhost:8001/run-model",
+        { cid },
+        {
+          responseType: "blob",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (res.status === 200) {
+        const renderedUrl = URL.createObjectURL(res.data);
+        setSelectedImage(renderedUrl);
+      }
+    } catch (error) {
+      console.error("Request failed:", error);
+      alert("Failed to connect to backend server. Check if it's running.");
+    }
+  };
+
+  const handlePreview = (cid) => {
+    const url = `http://127.0.0.1:8080/ipfs/${cid}`;
+    setSelectedImage(url);
+    setIsOpen(true);
+  };
+
   if (!dataset) {
     return (
-      <div className="p-6 text-white">
+      <div className="p-6 text-gray-700">
         <p>❌ No dataset data found! Please go back.</p>
         <button
           onClick={() => navigate(-1)}
-          className="mt-4 px-4 py-2 bg-accent text-black rounded hover:opacity-90"
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
         >
           ← Back
         </button>
@@ -61,17 +122,17 @@ export default function DatasetView() {
   }
 
   return (
-    <div className="bg-dark min-h-screen text-white p-6">
+    <div className="bg-gray-100 min-h-screen text-gray-800 p-6">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="mb-2 px-4 py-2 bg-accent text-black rounded hover:opacity-90"
+        className="mb-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
       >
         ← Back
       </button>
 
       {/* Stats Row */}
-      <div className="flex items-center gap-4 text-sm text-gray-300 mb-4 ml-1">
+      <div className="flex items-center gap-6 text-sm text-gray-600 mb-6">
         <div className="flex items-center gap-1">
           <Eye size={16} /> <span>{stats.views} Views</span>
         </div>
@@ -85,48 +146,112 @@ export default function DatasetView() {
 
       {/* Dataset Name */}
       <h2 className="text-2xl font-bold mb-2">{dataset.name}</h2>
-      <p className="text-gray-400 mb-6">📦 Dataset contains {dataset.images.length} items</p>
+      <p className="text-gray-500 mb-6">
+        📦 Dataset contains {dataset.images.length} items
+      </p>
 
-      {/* Media Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {dataset.images.map((cid, idx) => {
-          const url = `http://127.0.0.1:8080/ipfs/${cid}`;
-          const type = contentTypes[cid] || "";
-          const isVideo = type.startsWith("video/");
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-md">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">
+                Image
+              </th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">
+                CID
+              </th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">
+                Dimensions
+              </th>
+              <th className="px-6 py-3 text-left text-gray-600 font-medium">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {dataset.images.map((cid, idx) => {
+              const url = `http://127.0.0.1:8080/ipfs/${cid}`;
+              const type = contentTypes[cid] || "";
+              const isVideo = type.startsWith("video/");
+              const selectedModel = selectedModels[cid] || "";
 
-          return (
-            <div key={idx} className="bg-surface p-2 rounded-lg shadow text-center">
-              {isVideo ? (
-                <>
-                  {activeVideo === idx ? (
-                    <video
-                      src={url}
-                      controls
-                      className="rounded-lg w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="relative rounded-lg w-full h-48 bg-black flex items-center justify-center">
-                      <span className="text-gray-400">🎥 Video</span>
-                      <button
-                        onClick={() => setActiveVideo(idx)}
-                        className="absolute bottom-2 px-3 py-1 bg-accent text-black text-sm rounded hover:opacity-90"
-                      >
-                        ▶ Watch Video
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <img
-                  src={url}
-                  alt={`Item ${idx + 1}`}
-                  className="rounded-lg w-full h-48 object-cover"
-                />
-              )}
-            </div>
-          );
-        })}
+              return (
+                <tr key={idx} className="hover:bg-gray-50">
+                  {/* Image Preview */}
+                  <td className="px-6 py-3">
+                    {isVideo ? (
+                      <span className="text-gray-500">🎥 Video</span>
+                    ) : (
+                      <img
+                        src={url}
+                        alt={`Item ${idx + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg border"
+                      />
+                    )}
+                  </td>
+
+                  {/* CID */}
+                  <td className="px-6 py-3 text-gray-700">{cid}</td>
+
+                  {/* Dimensions */}
+                  <td className="px-6 py-3 text-gray-600">
+                    {dimensions[cid] || "Loading..."}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-3 flex items-center gap-4">
+                    <button
+                      onClick={() => handlePreview(cid)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 transition"
+                    >
+                      View
+                    </button>
+
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => handleModelChange(cid, e.target.value)}
+                      className="border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-700"
+                    >
+                      <option value="">Select Model</option>
+                      <option value="yolo">YOLO</option>
+                      <option value="resnet">ResNet</option>
+                      <option value="mobilenet">MobileNet</option>
+                    </select>
+
+                    <button
+                      disabled={!selectedModel}
+                      onClick={() => handleRunModel(cid)}
+                      className={`px-3 py-1 text-sm rounded-md transition ${
+                        selectedModel
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
+                    >
+                      Run Model
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+
+      {/* Modal preview */}
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Image Preview"
+      >
+        {selectedImage && (
+          <img
+            src={selectedImage}
+            alt="Preview"
+            className="max-w-full max-h-[70vh] mx-auto rounded-lg"
+          />
+        )}
+      </Modal>
     </div>
   );
 }

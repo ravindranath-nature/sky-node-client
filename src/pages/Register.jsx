@@ -25,7 +25,6 @@ export default function Signup() {
     e.preventDefault();
 
     const response = await signup(formData);
-    console.log(response);
     if (response.success) {
       toast.success("Account created! Please verify OTP.");
       navigate(`/otp?email=${encodeURIComponent(formData.email)}`);
@@ -35,23 +34,27 @@ export default function Signup() {
   };
 
   return (
-    <AuthCard title="Sign Up">
-      <form className="space-y-4" onSubmit={handleSubmit}>
+    <AuthCard title="Create Your Account">
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <input
           name="name"
           value={formData.name}
           onChange={handleChange}
           type="text"
           placeholder="Full Name"
-          className="w-full p-3 bg-dark border border-gray-700 rounded-lg focus:outline-none focus:border-accent"
+          className="w-full p-3 bg-white border border-gray-300 rounded-xl 
+                     text-gray-800 placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
         <input
           name="email"
           value={formData.email}
           onChange={handleChange}
           type="email"
-          placeholder="Email"
-          className="w-full p-3 bg-dark border border-gray-700 rounded-lg focus:outline-none focus:border-accent"
+          placeholder="Email Address"
+          className="w-full p-3 bg-white border border-gray-300 rounded-xl 
+                     text-gray-800 placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
         <div className="relative">
           <input
@@ -60,25 +63,31 @@ export default function Signup() {
             onChange={handleChange}
             type={showPassword ? "text" : "password"}
             placeholder="Password"
-            className="w-full p-3 bg-dark border border-gray-700 rounded-lg focus:outline-none focus:border-accent pr-10"
+            className="w-full p-3 bg-white border border-gray-300 rounded-xl 
+                       text-gray-800 placeholder-gray-400 pr-12
+                       focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-3 text-gray-400 hover:text-white"
+            className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
         <button
           type="submit"
-          className="w-full bg-accent text-black p-3 rounded-lg font-semibold hover:opacity-90"
+          className="w-full bg-teal-500 text-white p-3 rounded-xl font-semibold
+                     transition-colors duration-200 hover:bg-teal-400"
         >
           Create Account
         </button>
-        <p className="text-sm text-center">
+        <p className="text-sm text-center text-gray-500">
           Already have an account?{" "}
-          <Link to="/login" className="text-accent underline">
+          <Link
+            to="/login"
+            className="text-teal-600 font-medium hover:underline"
+          >
             Login
           </Link>
         </p>

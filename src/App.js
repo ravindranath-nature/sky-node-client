@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import UploadedFiles from "./pages/UploadedFiles";
 import DatasetView from "./pages/DatasetView";
+import OTPVerification from "./pages/OtpVerification"
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         {/* ✅ Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/otp" element={<OTPVerification />} />
 
         {/* ✅ Protected Routes */}
         <Route
